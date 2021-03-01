@@ -25,7 +25,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: brianjahnke/dataspaceconnector:test
+          tags: user/app:test
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
