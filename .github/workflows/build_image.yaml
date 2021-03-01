@@ -33,7 +33,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: brianjahnke/DataspaceConnector:latest
+          tags: brianjahnke/dataspaceconnector:latest
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
