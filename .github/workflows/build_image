@@ -1,7 +1,11 @@
 name: docker_image
 
 on: 
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      description: "Something"
+      required: false
+      default: "None"
 
 jobs:
   docker:
