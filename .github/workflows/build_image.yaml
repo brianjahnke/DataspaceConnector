@@ -16,7 +16,7 @@ jobs:
         name: Login to Github Packages
         uses: mr-smithers-excellent/docker-build-push@v5
         with:
-          image: DataspaceConnector/dataspaceconnector
+          image: dataspaceconnector/dataspaceconnector
           registry: docker.pkg.github.com
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
