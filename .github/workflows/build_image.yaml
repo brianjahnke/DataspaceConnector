@@ -23,8 +23,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: docker.pkg.github.com/brianjahnke/dataspaceconnector:latest
+        run: |
+          docker build -t dataspaceconnector .
+          docker tag dataspaceconnector docker.pkg.github.com/brianjahnke/dataspaceconnector/dataspace-connector:4.1.0
+          docker push docker.pkg.github.com/brianjahnke/dataspaceconnector/dataspace-connector:4.1.0 
+          
