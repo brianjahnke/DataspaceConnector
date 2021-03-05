@@ -21,6 +21,7 @@ jobs:
           images: ghcr.io/brianjahnke/dataspace-connector
           tag-semver: |
             {{version}}
+          tag-sha: true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
