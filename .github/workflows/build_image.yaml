@@ -13,7 +13,7 @@ jobs:
       -
         name: echo
         run : |
-          echo $ {{ github.event_name }}
+          echo ${{ github.event_name }}
       -
         name: Checkout Repo
         uses: actions/checkout@v2
