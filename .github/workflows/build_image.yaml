@@ -1,8 +1,10 @@
 name: docker_image
 
 on:
+   release:
+     types: [ published ]
    push:
-    branches: [ develop ]
+    branches: [ master ]
     tags: 'v*'
 
 jobs:
