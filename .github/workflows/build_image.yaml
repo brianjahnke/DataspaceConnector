@@ -18,7 +18,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v1
         with:
-          images: ghcr.io/brianjahnke/dataspace-connector
+          images: docker.pkg.github.com/brianjahnke/dataspaceconnector/dataspace-connector
           tag-semver: |
             {{version}}
       -
@@ -31,8 +31,8 @@ jobs:
         name: Login to Github Packages
         uses: docker/login-action@v1
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          registry: docker.pkg.github.com/brianjahnke/dataspaceconnector/dataspace-connector
+          username: ${{ github.actor }}
           password: ${{ secrets.DOCKER_PW }}
       -
         name: Build and push
