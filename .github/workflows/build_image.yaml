@@ -1,5 +1,5 @@
 name: docker_image
-# test script
+
 on:
    push:
     branches: [ master, develop ]
@@ -18,7 +18,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v1
         with:
-          images: docker.pkg.github.com/brianjahnke/dataspaceconnector/dataspace-connector
+          images: ghcr.io/brianjahnke/dataspace-connector
           tag-semver: |
             {{version}}
       -
@@ -31,9 +31,9 @@ jobs:
         name: Login to Github Packages
         uses: docker/login-action@v1
         with:
-          registry: docker.pkg.github.com
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.DOCKER_PW }}
       -
         name: Build and push
         id: docker_build
@@ -44,4 +44,3 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-          
