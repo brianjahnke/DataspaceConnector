@@ -23,11 +23,11 @@ jobs:
       -
         name: Build docker image
         run: |
-          TAG="${REGISTRY}/${OWNER}"/dataspaceconnector/dataspace-connector:dev
+          TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
           readonly TAG
-          docker build . -t "${TAG}"
+          docker build . -t $TAG
       -
        name: Push docker image
        run: |
-        echo ${{ secrets.GITHUB_TOKEN }} | docker login ${REGISTRY} -u ${{ github.actor }} --password-stdin
-        docker push "${TAG}"
+        echo ${{ secrets.GITHUB_TOKEN }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+        docker push $TAG
