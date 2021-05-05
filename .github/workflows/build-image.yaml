@@ -67,7 +67,8 @@ jobs:
              docker push $IMAGE_NAME:latest
            fi
          fi
-         if [[ ${#TAG} != 0]]
+         if [[ ${#TAG} != 0 ]]
+         then
            # Has tag
            docker tag $IMAGE_NAME:$BRANCH_NAME $IMAGE_NAME:$TAG
            docker push $IMAGE_NAME:$TAG
