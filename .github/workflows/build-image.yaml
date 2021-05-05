@@ -23,8 +23,8 @@ jobs:
       -
         name: Build docker image
         run: |
-          TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
-          readonly TAG
+          echo "$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev" >> $TAG
+          readonly $TAG
           docker build . -t $TAG
       -
        name: Login to registry
@@ -36,5 +36,4 @@ jobs:
       -
        name: Push image
        run: |
-        TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
         docker push $TAG
