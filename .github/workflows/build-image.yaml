@@ -24,7 +24,7 @@ jobs:
       -
         name: Build registry path
         id: get_repo
-        run: echo ::set-output name=IMAGE::"($REGISTRY/$OWNER/dataspaceconnector/dataspace-connector")
+        run: echo ::set-output name=IMAGE::"$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector"
       -
        name: Find tag
        id: get_tag
