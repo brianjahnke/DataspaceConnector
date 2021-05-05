@@ -1,152 +1,107 @@
 package de.fraunhofer.isst.dataspaceconnector.controller;
 
-import de.fraunhofer.iais.eis.BaseConnectorImpl;
-import de.fraunhofer.iais.eis.ResourceCatalog;
-import de.fraunhofer.iais.eis.ResourceCatalogBuilder;
-import de.fraunhofer.iais.eis.util.ConstraintViolationException;
-import de.fraunhofer.iais.eis.util.Util;
-import de.fraunhofer.isst.dataspaceconnector.exceptions.ConnectorConfigurationException;
-import de.fraunhofer.isst.dataspaceconnector.services.IdsUtils;
-import de.fraunhofer.isst.dataspaceconnector.services.resource.OfferedResourceService;
-import de.fraunhofer.isst.dataspaceconnector.services.resource.RequestedResourceService;
-import de.fraunhofer.isst.ids.framework.spring.starter.SerializerProvider;
+import de.fraunhofer.isst.dataspaceconnector.controller.resources.ResourceControllers;
+import de.fraunhofer.isst.dataspaceconnector.services.ids.ConnectorService;
+import de.fraunhofer.isst.dataspaceconnector.utils.ControllerUtils;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.io.IOException;
-import java.util.ArrayList;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * This class provides endpoints for basic connector services.
  */
 @RestController
-@Tag(name = "Connector: Selfservice", description = "Endpoints for connector information")
+@Tag(name = "Connector", description = "Endpoints for connector information and configuration")
+@RequiredArgsConstructor
 public class MainController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
-
-    private final SerializerProvider serializerProvider;
-    private final OfferedResourceService offeredResourceService;
-    private final RequestedResourceService requestedResourceService;
-    private final IdsUtils idsUtils;
-
     /**
-     * Constructor for MainController.
-     *
-     * @throws IllegalArgumentException - if one of the parameters is null.
+     * Service for ids connector management.
      */
-    @Autowired
-    public MainController(@NotNull SerializerProvider serializerProvider,
-        @NotNull OfferedResourceService offeredResourceService,
-        @NotNull RequestedResourceService requestedResourceService,
-        @NotNull IdsUtils idsUtils)
-        throws IllegalArgumentException {
-        if (serializerProvider == null) {
-            throw new IllegalArgumentException("The SerializerProvider cannot be null.");
-        }
-
-        if (offeredResourceService == null) {
-            throw new IllegalArgumentException("The OfferedResourceService cannot be null.");
-        }
-
-        if (requestedResourceService == null) {
-            throw new IllegalArgumentException("The RequestedResourceService cannot be null.");
-        }
-
-        if (idsUtils == null) {
-            throw new IllegalArgumentException("The IdsUtils cannot be null.");
-        }
-
-        this.serializerProvider = serializerProvider;
-        this.offeredResourceService = offeredResourceService;
-        this.requestedResourceService = requestedResourceService;
-        this.idsUtils = idsUtils;
-    }
+    private final @NonNull ConnectorService connectorService;
 
     /**
-     * Gets connector self-description without catalog.
+     * Gets connector self-description without catalogs and resources.
      *
      * @return Self-description or error response.
      */
-    @Operation(summary = "Public Endpoint for Connector Self-description",
-        description = "Get the connector's reduced self-description.")
-    @RequestMapping(value = {"/", ""}, method = RequestMethod.GET)
+    @GetMapping(value = {"/", ""}, produces = "application/ld+json")
+    @Operation(summary = "Public IDS self-description")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ok"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")})
     @ResponseBody
-    public ResponseEntity<String> getPublicSelfDescription() {
-        Assert.notNull(idsUtils, "The idsUtils cannot be null.");
-        Assert.notNull(serializerProvider, "The serializerProvider cannot be null.");
-
+    public ResponseEntity<Object> getPublicSelfDescription() {
         try {
-            // Modify a connector for exposing the reduced self description
-            var connector = (BaseConnectorImpl) idsUtils.getConnector();
-            connector.setResourceCatalog(null);
-            connector.setPublicKey(null);
-
-            return new ResponseEntity<>(serializerProvider.getSerializer().serialize(connector),
-                HttpStatus.OK);
-        } catch (ConnectorConfigurationException exception) {
-            // No connector found
-            LOGGER.warn("No connector has been configurated.", exception);
-            return new ResponseEntity<>("No connector is currently available.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (IOException exception) {
-            // Could not serialize the connector.
-            LOGGER.error("Could not serialize the connector.", exception);
-            return new ResponseEntity<>("No connector is currently available.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
+            final var connector = connectorService.getConnectorWithoutResources();
+            return ResponseEntity.ok(connector.toRdf());
+        } catch (Exception exception) {
+            // Connector could not be loaded or deserialized.
+            return ControllerUtils.respondConnectorNotLoaded(exception);
         }
     }
 
     /**
-     * Gets connector self-description.
+     * Gets connector self-description with all resources.
      *
      * @return Self-description or error response.
      */
-    @Operation(summary = "Connector Self-description",
-        description = "Get the connector's self-description.")
-    @RequestMapping(value = {"/admin/api/self-description"}, method = RequestMethod.GET)
+    @GetMapping(value = "/api/connector", produces = "application/ld+json")
+    @Operation(summary = "Private IDS self-description")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ok"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")})
     @ResponseBody
-    public ResponseEntity<String> getSelfService() {
-        Assert.notNull(idsUtils, "The idsUtils cannot be null.");
-        Assert.notNull(serializerProvider, "The serializerProvider cannot be null.");
-
+    public ResponseEntity<Object> getPrivateSelfDescription() {
         try {
-            // Modify a connector for exposing a resource catalog
-            var connector = (BaseConnectorImpl) idsUtils.getConnector();
-            connector.setResourceCatalog(Util.asList(buildResourceCatalog()));
-
-            return new ResponseEntity<>(serializerProvider.getSerializer().serialize(connector),
-                HttpStatus.OK);
-        } catch (ConnectorConfigurationException exception) {
-            // No connector found
-            LOGGER.warn("No connector has been configurated.", exception);
-            return new ResponseEntity<>("No connector is currently available.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (IOException exception) {
-            // Could not serialize the connector.
-            LOGGER.error("Could not serialize the connector.", exception);
-            return new ResponseEntity<>("No connector is currently available.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
+            final var connector = connectorService.getConnectorWithOfferedResources();
+            return ResponseEntity.ok(connector.toRdf());
+        } catch (Exception exception) {
+            // Connector could not be loaded or deserialized.
+            return ControllerUtils.respondConnectorNotLoaded(exception);
         }
     }
 
-    private ResourceCatalog buildResourceCatalog() throws ConstraintViolationException {
-        Assert.notNull(offeredResourceService, "The offeredResourceService cannot be null.");
-        Assert.notNull(requestedResourceService, "The requestedResourceService cannot be null.");
+    /**
+     * Provides links at root page.
+     *
+     * @return Http ok.
+     */
+    @Hidden
+    @GetMapping("/api")
+    public ResponseEntity<RepresentationModel> root() {
+        final var model = new RepresentationModel();
 
-        return new ResourceCatalogBuilder()
-            ._offeredResource_(new ArrayList<>(offeredResourceService.getResourceList()))
-            ._requestedResource_(new ArrayList<>(requestedResourceService.getRequestedResources()))
-            .build();
+        model.add(linkTo(methodOn(MainController.class).root()).withSelfRel());
+        model.add(linkTo(methodOn(ResourceControllers.AgreementController.class)
+                .getAll(null, null, null)).withRel("agreements"));
+        model.add(linkTo(methodOn(ResourceControllers.ArtifactController.class)
+                .getAll(null, null, null)).withRel("artifacts"));
+        model.add(linkTo(methodOn(ResourceControllers.CatalogController.class)
+                .getAll(null, null, null)).withRel("catalogs"));
+        model.add(linkTo(methodOn(ResourceControllers.ContractController.class)
+                .getAll(null, null, null)).withRel("contracts"));
+        model.add(linkTo(methodOn(ResourceControllers.OfferedResourceController.class)
+                .getAll(null, null, null)).withRel("offers"));
+        model.add(linkTo(methodOn(ResourceControllers.RepresentationController.class)
+                .getAll(null, null, null)).withRel("representations"));
+        model.add(linkTo(methodOn(ResourceControllers.RequestedResourceController.class)
+                .getAll(null, null, null)).withRel("requests"));
+        model.add(linkTo(methodOn(ResourceControllers.RuleController.class)
+                .getAll(null, null, null)).withRel("rules"));
+
+        return ResponseEntity.ok(model);
     }
 }

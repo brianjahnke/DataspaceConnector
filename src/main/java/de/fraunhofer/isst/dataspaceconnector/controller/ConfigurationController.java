@@ -1,112 +1,176 @@
 package de.fraunhofer.isst.dataspaceconnector.controller;
 
-import de.fraunhofer.iais.eis.ConfigurationModel;
+import de.fraunhofer.isst.dataspaceconnector.config.ConnectorConfiguration;
+import de.fraunhofer.isst.dataspaceconnector.services.ids.DeserializationService;
+import de.fraunhofer.isst.dataspaceconnector.utils.ControllerUtils;
 import de.fraunhofer.isst.ids.framework.configuration.ConfigurationContainer;
 import de.fraunhofer.isst.ids.framework.configuration.ConfigurationUpdateException;
-import de.fraunhofer.isst.ids.framework.spring.starter.SerializerProvider;
-import io.jsonwebtoken.lang.Assert;
-import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
+import static de.fraunhofer.isst.dataspaceconnector.utils.ControllerUtils.respondConfigurationNotFound;
 
 /**
  * This class provides endpoints for connector configurations via a connected config manager.
  */
 @RestController
-@RequestMapping("/admin/api")
-@Tag(name = "Connector Configuration", description = "Endpoints for connector configuration")
+@RequestMapping("/api")
+@RequiredArgsConstructor
 public class ConfigurationController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationController.class);
-
-    private final ConfigurationContainer configurationContainer;
-    private final SerializerProvider serializerProvider;
+    /**
+     * The current connector configuration.
+     */
+    private final @NonNull ConfigurationContainer configContainer;
 
     /**
-     * Constructor for ConfigurationController.
-     *
-     * @throws IllegalArgumentException - if one of the parameters is null.
+     * The current policy configuration.
      */
-    @Autowired
-    public ConfigurationController(@NotNull ConfigurationContainer configurationContainer,
-        @NotNull SerializerProvider serializerProvider) throws IllegalArgumentException {
-        if (configurationContainer == null) {
-            throw new IllegalArgumentException("The ConfigurationContainer cannot be null.");
-        }
+    private final @NonNull ConnectorConfiguration connectorConfig;
 
-        if (serializerProvider == null) {
-            throw new IllegalArgumentException("The SerializerProvider cannot be null.");
-        }
+    /**
+     * Service for deserializing ids objects.
+     */
+    private final @NonNull DeserializationService idsService;
 
-        this.configurationContainer = configurationContainer;
-        this.serializerProvider = serializerProvider;
-    }
-
-    @Hidden
-    @RequestMapping(value = "/configuration", method = RequestMethod.POST)
+    /**
+     * Update the connector's current configuration.
+     *
+     * @param configuration The new configuration.
+     * @return Ok or error response.
+     */
+    @PostMapping("/configuration")
+    @Operation(summary = "Update current configuration.")
+    @Tag(name = "Connector", description = "Endpoints for connector information and configuration")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ok"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")})
     @ResponseBody
-    public ResponseEntity<String> updateConfiguration(@RequestBody String updatedConfiguration) {
-        Assert.notNull(serializerProvider, "The serializerProvider cannot be null.");
-        Assert.notNull(configurationContainer, "The configurationContainer cannot be null.");
-
+    public ResponseEntity<Object> updateConfiguration(@RequestBody final String configuration) {
         try {
-            final var serializer = serializerProvider.getSerializer();
-            if (serializer == null) {
-                throw new NullPointerException("No configuration serializer has been set.");
-            }
+            // Deserialize input.
+            final var config = idsService.getConfigurationModel(configuration);
 
-            final var old_configurationModel = configurationContainer.getConfigModel();
-            final var new_configurationModel =
-                serializer.deserialize(updatedConfiguration, ConfigurationModel.class);
-
-            configurationContainer.updateConfiguration(new_configurationModel);
-
-            LOGGER.info(String.format("Updated the configuration. Old version: \n%s\nNew version:" +
-                    " %s", old_configurationModel != null ?
-                    old_configurationModel.toRdf() : "No config found.",
-                new_configurationModel.toRdf()));
-
-            return new ResponseEntity<>("Configuration successfully updated.", HttpStatus.OK);
-        } catch (NullPointerException exception) {
-            LOGGER.error("Failed to receive the serializer.", exception);
-
-            return new ResponseEntity<>("Failed to update configuration.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (IOException exception) {
-            LOGGER.error("Failed to deserialize the configuration.", exception);
-
-            return new ResponseEntity<>("Failed to update configuration.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
+            // Update configuration of connector.
+            configContainer.updateConfiguration(config);
+            return ResponseEntity.ok("Configuration successfully updated.");
         } catch (ConfigurationUpdateException exception) {
-            LOGGER.error("Failed to update the configuration.", exception);
-
-            return new ResponseEntity<>("Failed to update configuration.",
-                HttpStatus.INTERNAL_SERVER_ERROR);
+            return ControllerUtils.respondConfigurationUpdateError(exception);
+        } catch (IllegalArgumentException exception) {
+            return ControllerUtils.respondDeserializationError(exception);
         }
     }
 
-    @Hidden
-    @RequestMapping(value = "/configuration", method = RequestMethod.GET)
+    /**
+     * Return the connector's current configuration.
+     *
+     * @return The configuration object or an error.
+     */
+    @GetMapping(value = "/configuration", produces = "application/ld+json")
+    @Operation(summary = "Get current configuration.")
+    @Tag(name = "Connector", description = "Endpoints for connector information and configuration")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ok"),
+            @ApiResponse(responseCode = "404", description = "Not found")})
     @ResponseBody
-    public ResponseEntity<String> getConfiguration() {
-        Assert.notNull(configurationContainer, "The configurationContainer cannot be null.");
-
-        final var config = configurationContainer.getConfigModel();
-        if (config != null) {
-            // Return the config
-            return new ResponseEntity<>(config.toRdf(), HttpStatus.OK);
+    public ResponseEntity<Object> getConfiguration() {
+        final var config = configContainer.getConfigModel();
+        if (config == null) {
+            return respondConfigurationNotFound();
         } else {
-            // No configuration configured
-            LOGGER.info("No configuration could be found.");
-            return new ResponseEntity<>("No configuration found.", HttpStatus.NOT_FOUND);
+            return ResponseEntity.ok(config.toRdf());
+        }
+    }
+
+    /**
+     * Turns contract negotiation on or off (at runtime).
+     *
+     * @param status The desired state.
+     * @return Http ok or error response.
+     */
+    @PutMapping("/configuration/negotiation")
+    @Operation(summary = "Set contract negotiation status")
+    @Tag(name = "Usage Control", description = "Endpoints for contract/policy handling")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Ok")})
+    @ResponseBody
+    public ResponseEntity<Object> setNegotiationStatus(
+            @RequestParam("status") final boolean status) {
+        connectorConfig.setPolicyNegotiation(status);
+        if (connectorConfig.isPolicyNegotiation()) {
+            return ResponseEntity.ok("Contract Negotiation is activated.");
+        } else {
+            return ResponseEntity.ok("Contract Negotiation is deactivated.");
+        }
+    }
+
+    /**
+     * Returns the contract negotiation status.
+     *
+     * @return Http ok or error response.
+     */
+    @GetMapping("/configuration/negotiation")
+    @Operation(summary = "Get contract negotiation status")
+    @Tag(name = "Usage Control", description = "Endpoints for contract/policy handling")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Ok")})
+    @ResponseBody
+    public ResponseEntity<Object> getNegotiationStatus() {
+        if (connectorConfig.isPolicyNegotiation()) {
+            return ResponseEntity.ok("Contract Negotiation is activated.");
+        } else {
+            return ResponseEntity.ok("Contract Negotiation is deactivated.");
+        }
+    }
+
+    /**
+     * Allows requesting data without policy enforcement.
+     *
+     * @param status The desired state.
+     * @return Http ok or error response.
+     */
+    @PutMapping("/configuration/pattern")
+    @Operation(summary = "Allow unsupported patterns", description = "Allow "
+            + "requesting data without policy enforcement if an unsupported pattern is recognized.")
+    @Tag(name = "Usage Control", description = "Endpoints for contract/policy handling")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Ok")})
+    @ResponseBody
+    public ResponseEntity<Object> getPatternStatus(@RequestParam("status") final boolean status) {
+        connectorConfig.setAllowUnsupported(status);
+        if (connectorConfig.isAllowUnsupported()) {
+            return ResponseEntity.ok("Data can be accessed despite unsupported pattern.");
+        } else {
+            return ResponseEntity.ok("Data cannot be accessed with unsupported patterns.");
+        }
+    }
+
+    /**
+     * Returns the unsupported pattern status.
+     *
+     * @return Http ok or error response.
+     */
+    @GetMapping("/configuration/pattern")
+    @Operation(summary = "Get pattern validation status",
+            description = "Return if unsupported patterns are ignored when requesting data.")
+    @Tag(name = "Usage Control", description = "Endpoints for contract/policy handling")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Ok")})
+    @ResponseBody
+    public ResponseEntity<Object> getPatternStatus() {
+        if (connectorConfig.isAllowUnsupported()) {
+            return ResponseEntity.ok("Data can be accessed despite unsupported pattern.");
+        } else {
+            return ResponseEntity.ok("Data cannot be accessed with unsupported patterns.");
         }
     }
 }

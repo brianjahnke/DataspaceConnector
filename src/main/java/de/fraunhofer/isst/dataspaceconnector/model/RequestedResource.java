@@ -1,120 +1,62 @@
 package de.fraunhofer.isst.dataspaceconnector.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
-import java.util.Date;
-import java.util.UUID;
+import javax.persistence.Entity;
+import javax.persistence.ManyToMany;
+import javax.persistence.Table;
+import java.net.URI;
+import java.util.List;
 
 /**
- * This class provides a custom data resource with an id, data and metadata to be saved in a h2
- * database.
+ * Describes resource requested by this connector.
  */
-@Data
 @Entity
 @Table
-public class RequestedResource implements ConnectorResource {
-
-    @Id
-    @GeneratedValue
-    @JsonProperty("uuid")
-    private UUID uuid;
-
-    @JsonProperty("created")
-    private Date created;
-
-    @JsonProperty("modified")
-    private Date modified;
-
-    @NotNull
-    @Column(columnDefinition = "BYTEA")
-    @JsonProperty("metadata")
-    private ResourceMetadata resourceMetadata;
-
-    @Column(columnDefinition = "TEXT")
-    @JsonProperty("data")
-    private String data;
-
-    @JsonProperty("accessed")
-    private Integer accessed;
+@Getter
+@Setter(AccessLevel.PACKAGE)
+@EqualsAndHashCode(callSuper = true)
+public final class RequestedResource extends Resource {
 
     /**
-     * Constructor for RequestedResource.
-     */
-    public RequestedResource() {
+     * Serial version uid.
+     **/
+    private static final long serialVersionUID = 1L;
 
+    /**
+     * The resource id on provider side.
+     */
+    private URI remoteId;
+
+    /**
+     * Default constructor.
+     */
+    protected RequestedResource() {
+        super();
     }
 
     /**
-     * Constructor with parameters for RequestedResource.
+     * The catalogs in which this resource is used.
      */
-    public RequestedResource(Date created, Date modified, ResourceMetadata resourceMetadata,
-        String data, Integer accessed) {
-        this.created = created;
-        this.modified = modified;
-        this.resourceMetadata = resourceMetadata;
-        this.data = data;
-        this.accessed = accessed;
-    }
+    @ManyToMany(mappedBy = "requestedResources")
+    private List<Catalog> catalogs;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public UUID getUuid() {
-        return uuid;
+    public void setCatalogs(final List<Catalog> catalogList) {
+        this.catalogs = catalogList;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void setUuid(UUID uuid) {
-        this.uuid = uuid;
-    }
-
-    @Override
-    public Date getCreated() {
-        return created;
-    }
-
-    @Override
-    public void setCreated(Date created) {
-        this.created = created;
-    }
-
-    @Override
-    public Date getModified() {
-        return modified;
-    }
-
-    @Override
-    public void setModified(Date modified) {
-        this.modified = modified;
-    }
-
-    @Override
-    public ResourceMetadata getResourceMetadata() {
-        return resourceMetadata;
-    }
-
-    @Override
-    public void setResourceMetadata(ResourceMetadata resourceMetadata) {
-        this.resourceMetadata = resourceMetadata;
-    }
-
-    @Override
-    public String getData() {
-        incrementDataAccess();
-        return data;
-    }
-
-    @Override
-    public void setData(String data) {
-        this.data = data;
-    }
-
-    public Integer getAccessed() {
-        return accessed;
-    }
-
-    private void incrementDataAccess() {
-        this.accessed++;
+    public List<Catalog> getCatalogs() {
+        return catalogs;
     }
 }
