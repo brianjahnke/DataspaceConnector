@@ -44,29 +44,36 @@ jobs:
       -
        name: Build image
        run: |
-        docker build . -t ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
+        docker build . -t IMAGE_NAME:BRANCH_NAME
+       env:
+         IMAGE_NAME: ${{ steps.get_repo.outputs.IMAGE }}
+         BRANCH_NAME: ${{ steps.get_branch.outputs.BRANCH }}
       -
        name: Push image
        run: |
-         echo "Image: ${{ steps.get_repo.outputs.IMAGE }}"
-         echo "Branch: ${{ steps.get_branch.outputs.BRANCH }}"
-         echo "Tag: ${{ steps.get_tag.outputs.TAG }}"
-         TAG=${{ steps.get_tag.outputs.TAG }}
+         echo $IMAGE_NAME
+         echo $BRANCH_NAME
+         echo $TAG_NAME
+         TAG=$TAG_NAME
          if [[ $TAG == v* ]]
          then
            # Its a version tag
            TAG=${TAG:1:${#TAG}}
            echo "Found a version tag"
-           if [[ ${{ steps.get_branch.outputs.BRANCH }} == 'master' ]]
+           if [[ $BRANCH_NAME == 'master' ]]
            then
              # Its a release version tag
-             docker tag ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.outputs.IMAGE }}:latest
-             docker push ${{ steps.get_repo.outputs.IMAGE }}:latest
+             docker tag $IMAGE_NAME:$BRANCH_NAME $IMAGE_NAME:latest
+             docker push $IMAGE_NAME:latest
           fi
          fi
          if [[ ${#TAG} != 0]]
            # Has tag
-           docker tag ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.outputs.IMAGE }}:{$TAG}
-           docker push ${{ steps.get_repo.outputs.IMAGE }}:{$TAG}
+           docker tag $IMAGE_NAME:$BRANCH_NAME $IMAGE_NAME:$TAG
+           docker push $IMAGE_NAME:$TAG
          fi
-         docker push ${{ get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
+         docker push $IMAGE_NAME:$BRANCH_NAME
+       env:
+         IMAGE_NAME: ${{ steps.get_repo.outputs.IMAGE }}
+         BRANCH_NAME: ${{ steps.get_branch.outputs.BRANCH }}
+         TAG_NAME: ${{ steps.get_tag.outputs.TAG }}
