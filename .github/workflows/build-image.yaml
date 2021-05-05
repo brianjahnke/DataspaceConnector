@@ -6,8 +6,8 @@ on:
     tags: 'v*'
    release:
      types: [published]
-   schedule:
-      - cron: '0 4 * * *'
+   #schedule:
+   #   - cron: '0 4 * * *'
       
 env:
   REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
@@ -15,17 +15,24 @@ env:
     
 jobs:
   docker:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout Repo
         uses: actions/checkout@v2
       -
-        name: Build docker image
-        run: |
-          TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
-          readonly TAG
-          docker build . -t $TAG
+        name: Build registry path
+        id: get_repo
+        run: echo ::set-output name=IMAGE::"($REGISTRY/$OWNER/dataspaceconnector/dataspace-connector")
+      -
+       name: Find tag
+       id: get_tag
+       run: echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
+      -
+       name: Find branch name
+       id: get_branch
+       run: echo ::set-output name=BRANCH::${GITHUB_REF/refs\/heads\//}
       -
        name: Login to registry
        uses: docker/login-action@v1
@@ -35,8 +42,31 @@ jobs:
          username: ${{ github.actor }}
          password: ${{ secrets.GITHUB_TOKEN }}
       -
+       name: Build image
+       run: |
+        docker build . -t ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
+      -
        name: Push image
        run: |
-        # This will have to be moved/joined with the TAG from above
-        TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
-        docker push $TAG
+         echo "Image: ${{ steps.get_repo.output.IMAGE }}"
+         echo "Branch: ${{ steps.get_repo.output.BRANCH }}"
+         echo "Tag: ${{ steps.get_repo.output.TAG }}"
+         TAG=${{ steps.get_tag.outputs.TAG }}
+         if [[ $TAG == v* ]]
+         then
+           # Its a version tag
+           TAG=${TAG:1:${#TAG}}
+           echo "Found a version tag"
+           if [[ ${{ steps.get_branch.outputs.BRANCH }} == 'master' ]]
+           then
+             # Its a release version tag
+             docker tag ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.output.IMAGE }}:latest
+             docker push ${{ steps.get_repo.output.IMAGE }}:latest
+          fi
+         fi
+         if [[ ${#TAG} != 0]]
+           # Has tag
+           docker tag ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.output.IMAGE }}:{$TAG}
+           docker push ${{ steps.get_repo.output.IMAGE }}:{$TAG}
+         fi
+         docker push ${{ get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
