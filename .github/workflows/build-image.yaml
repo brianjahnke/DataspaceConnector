@@ -10,8 +10,8 @@ on:
       - cron: '0 4 * * *'
       
 env:
-  REGISTRY: ${{secrets.IMAGE_REGISTRY}}
-  OWNER: ${{secrets.REPO_USER}}
+  REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
+  OWNER: ${{ secrets.REPO_USER }}
     
 jobs:
   docker:
@@ -27,8 +27,14 @@ jobs:
           readonly TAG
           docker build . -t $TAG
       -
-       name: Push docker image
+       name: Login to registry
+       uses: docker/login-action@v1
+       with:
+         registry: REGISTRY
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+      -
+       name: Push image
        run: |
         TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
-        echo ${{ secrets.GITHUB_TOKEN }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
         docker push $TAG
