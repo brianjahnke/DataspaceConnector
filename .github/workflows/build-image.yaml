@@ -65,7 +65,7 @@ jobs:
              # Its a release version tag
              docker tag $IMAGE_NAME:$BRANCH_NAME $IMAGE_NAME:latest
              docker push $IMAGE_NAME:latest
-          fi
+           fi
          fi
          if [[ ${#TAG} != 0]]
            # Has tag
