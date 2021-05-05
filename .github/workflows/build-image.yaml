@@ -23,17 +23,20 @@ jobs:
       -
         name: Build docker image
         run: |
-          echo "$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev" >> $TAG
-          readonly $TAG
+          TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
+          readonly TAG
           docker build . -t $TAG
       -
        name: Login to registry
        uses: docker/login-action@v1
        with:
+         # This should use REGISTRY instead of the secret directly
          registry: ${{ secrets.IMAGE_REGISTRY }}
          username: ${{ github.actor }}
          password: ${{ secrets.GITHUB_TOKEN }}
       -
        name: Push image
        run: |
+        # This will have to be moved/joined with the TAG from above
+        TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
         docker push $TAG
