@@ -44,13 +44,13 @@ jobs:
       -
        name: Build image
        run: |
-        docker build . -t ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
+        docker build . -t ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
       -
        name: Push image
        run: |
-         echo "Image: ${{ steps.get_repo.output.IMAGE }}"
-         echo "Branch: ${{ steps.get_repo.output.BRANCH }}"
-         echo "Tag: ${{ steps.get_repo.output.TAG }}"
+         echo "Image: ${{ steps.get_repo.outputs.IMAGE }}"
+         echo "Branch: ${{ steps.get_branch.outputs.BRANCH }}"
+         echo "Tag: ${{ steps.get_tag.outputs.TAG }}"
          TAG=${{ steps.get_tag.outputs.TAG }}
          if [[ $TAG == v* ]]
          then
@@ -60,13 +60,13 @@ jobs:
            if [[ ${{ steps.get_branch.outputs.BRANCH }} == 'master' ]]
            then
              # Its a release version tag
-             docker tag ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.output.IMAGE }}:latest
-             docker push ${{ steps.get_repo.output.IMAGE }}:latest
+             docker tag ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.outputs.IMAGE }}:latest
+             docker push ${{ steps.get_repo.outputs.IMAGE }}:latest
           fi
          fi
          if [[ ${#TAG} != 0]]
            # Has tag
-           docker tag ${{ steps.get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.output.IMAGE }}:{$TAG}
-           docker push ${{ steps.get_repo.output.IMAGE }}:{$TAG}
+           docker tag ${{ steps.get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }} ${{ steps.get_repo.outputs.IMAGE }}:{$TAG}
+           docker push ${{ steps.get_repo.outputs.IMAGE }}:{$TAG}
          fi
-         docker push ${{ get_repo.output.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
+         docker push ${{ get_repo.outputs.IMAGE }}:${{ steps.get_branch.outputs.BRANCH }}
