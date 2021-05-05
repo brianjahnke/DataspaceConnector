@@ -44,7 +44,7 @@ jobs:
       -
        name: Build image
        run: |
-        docker build . -t IMAGE_NAME:BRANCH_NAME
+        docker build . -t $IMAGE_NAME:$BRANCH_NAME
        env:
          IMAGE_NAME: ${{ steps.get_repo.outputs.IMAGE }}
          BRANCH_NAME: ${{ steps.get_branch.outputs.BRANCH }}
