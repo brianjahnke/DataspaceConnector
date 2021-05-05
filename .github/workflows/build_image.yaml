@@ -29,5 +29,6 @@ jobs:
       -
        name: Push docker image
        run: |
+        TAG=$REGISTRY/$OWNER/dataspaceconnector/dataspace-connector:dev
         echo ${{ secrets.GITHUB_TOKEN }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
         docker push $TAG
