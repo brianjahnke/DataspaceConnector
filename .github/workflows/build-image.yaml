@@ -6,8 +6,8 @@ on:
     tags: 'v*'
    release:
      types: [published]
-   #schedule:
-   #   - cron: '0 4 * * *'
+   schedule:
+      - cron: '10 * * * *'
       
 env:
   REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
