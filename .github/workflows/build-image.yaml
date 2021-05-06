@@ -33,9 +33,7 @@ jobs:
       -
        name: Find branch name
        id: get_branch
-       run: |
-         BRANCH=$(git rev-parse --abbrev-ref HEAD)
-         echo ::set-output name=BRANCH
+       run: echo ::set-output name=BRANCH::$(git rev-parse --abbrev-ref HEAD)
       -
        name: Login to registry
        uses: docker/login-action@v1
