@@ -1,14 +1,179 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2021-05-17
+
+### Added
+- Partially support of HATEOAS.
+- Add pagination for REST calls on resources.
+- Integration and configuration of Jaeger for using open telemetry.
+- Set default application name to `Dataspace Connector` in `application.properties`.
+- Add custom spring banner.
+- Add separate controller methods for each IDS message type.
+- Add global exception handlers for `ResourceNotFoundException`, `JsonProcessingException`, and any
+  `RuntimeException`.
+- Add possibility to disable http tracer in `application.properties`.
+- Add possibility to restrict depth of returned IDS information on `DescriptionRequest`.
+  * Change IDS self-description to returning only a list of catalogs instead of their whole content.
+  * Add possibility to send `DescriptionRequestMessages` for other elements than resources.
+- Add remote IDs to each object for tracking origin.
+- Support multiple policy patterns in one contract.
+- Add Unit tests and integration tests.
+- Add quality checks and project reports to `pom.xml`: execute with `mvn verify site`.
+- Improve contract negotiation and usage control.
+  * Add contract agreement validation in `ContractAgreementHandler`.
+  * Note pre-defined providers for contract offers in `ContractRequestHandler`.
+  * Use contract agreements for policy enforcement.
+  * Handle out contract agreements for multiple artifacts (targets) within one negotiation sequence.
+  * Restrict agreement processing to confirmed agreements.
+  * Add relation between artifacts and agreements.
+
+### Changed
+- Support of IDS Infomodel v4.0.4 (direct import in `pom.xml`).
+- Change IDS Framework version to v4.0.7.
+- Http tracer is limited to 10000 characters per log line.
+- Log file creation is disabled by default.
+- Move Swagger UI to `/api/docs`.
+- Change response type from string to object.
+- Use correct response codes as defined by RFC 7231.
+- Replace old data model: catalogs, resources, representations, artifacts, contract, rules, and 
+  agreements.
+  * Separate `ResourceRepresentation` into `Representation` and `Artifact`.
+  * Separate `ResourceContract` into `Contract` and `Rule`.
+  * Handle data in own database entity.
+  * Separate management of resources and its relations.
+  * Define clear interfaces between data model and the IDS Infomodel objects.
+  * Add IDS object builder classes.
+    * Build ids:Resource only if at least 1 representation and 1 contract is present.
+    * Build ids:Representation only if at least 1 artifact is present.
+    * Build ids:ContractOffer only if at least 1 rule is present.
+  * Move remote information from `BackendSource` to `Artifact`.
+- Strict implementation of model view controller pattern for data management.
+  * Controller methods for resources and representations.
+  * Provide strict access control to backend. Information can only be read and changed by services.
+  * Strict state validation for entities via factory classes.
+- Change IDS messaging sequence: Start with `ContractRequestMessage` for automated
+  `DescriptionRequestMessage` and `ArtifactRequestMessage`.
+- Improve data transfer.
+  * Process bytes instead of strings.
+  * Remove limit for data in internal database.
+  * Establish connection via `ArtifactRequestMessage` for always pulling recent data.
+
+### Fixed
+- Fix of buffer overflow in http tracer.
+- Make message handler stateless.
+
+### Security
+- Prevent leaking of technology stack in case of errors/exceptions.
+- Logger sanitizes inputs to prevent CRLF injections.
+- Mass Bindings.
+- Timezone independence.
+
+## [4.3.1] - 2021-04-15
+
+### Changed
+- Set builder image to JDK 11.
+
+## [4.3.0] - 2021-03-24
+
+### Added
+- Configure timeout values for http connections via `application.properties`.
+
+## [4.2.0] - 2021-03-09
+
+### Added
+- New policy pattern: connector-restricted data usage.
+- Validate `CONNECTOR_RESTRICTED_USAGE` on data request (as a provider).
+
+## [4.1.0] - 2021-03-02
+
+### Added
+- Handle `ResourceUpdateMessage`: Update the local copy of resource upon receiving a `ResourceUpdateMessage`.
+- Add attribute for endpoint documentation reference to `ResourceMetadata`.
+- Store `ownerURI`, `contractID`, `artifactID`, and `originalUUID` in `RequestedResource`.
+- Add support for query params, path variables, and additional headers when requesting artifacts.
+- Add input validation for query params, path variables, and headers.
+- Add usage control framework checking to the classes `PolicyEnforcement` and `PolicyHandler`.
+- Add example files for deployment in Kubernetes.
+
+### Changed
+- Configure Spring to fail on unknown properties in request bodies.
+- Move settings for policy negotiation and allowing unsupported patterns to `application.properties`.
+- Refactor HttpUtils to use the IDS Framework's `HttpService`.
+- Add data string as request body instead of request parameter.
+
+### Fixed
+- Exclusive use of the `ConfigurationContainer` for processing the connector's self-description and
+  configurations to avoid state errors (relevant for the broker communication).
+
+## [4.0.2] - 2021-02-04
+
+### Added
+- Add message handler for `ContractAgreementMessage`.
+
+### Changed
+- Answer with a `MessageProcessedNotificationMessage` to the consumer's `ContractAgreementMessage`.
+- Save the `ContractAgreement` to the database and the Clearing House when the second
+`AgreementMessage` has been processed.
+- Refine exception handling in the message building and sending process.
+- Update from IDS Framework v4.0.2 to v4.0.3.
+
+### Fixed
+- Send `ContractAgreementMessage` as request message.
+
+## [4.0.1] - 2021-01-28
+
+### Changed
+- Update from IDS Framework v4.0.1 to v4.0.2.
+
+## [4.0.0] - 2021-01-25
+
+### Added
+- Add public endpoint for self-description without resource catalog and public key.
+- Add example endpoints.
+- Add exceptions and detailed exception handling.
+- Create `UUIDUtils` for uuid handling.
+- Create `ControllerUtils` for http responses.
+- Add endpoints for contract negotiation.
+- Add http tracing and improved logging.
+- Add custom profiles for Maven.
+- Add negotiation service.
+- Add Spring actuators.
+- Add contract agreement repository.
+
+### Changed
+- Change object handling and model classes.
+    - Move attribute `system` from `BackendSource` as `name` to `ResourceRepresentation`.
+    - Move attribute `sourceType` from `ResourceRepresentation` as `type` to `BackendSource`.
+    - Migrate `ResourceRepresentation` to map.
+- Remove requested resource list from description response.
+- Rename broker communication and self-description endpoints.
+- Improve exception handling.
+- Improve message handler and sending request messages in `de.fraunhofer.isst.dataspaceconnector.services.messages`.
+- Change package structure.
+- Add abstract class to resource service implementations.
+- Edit policy handler.
+- Improve `pom.xml`.
+- Remove local caching of ids resources.
+- Update to IDS Framework v4.0.1.
+- Restructure `README.md` and wiki.
+- Move code of conduct from `CONTRIBUTING.md` to `CODE_OF_CONDUCT.md`.
+- Add response code annotations to endpoint methods.
+- Change http response formatting.
+- Replace Log4j1 with Log4j2.
+
+### Fixed
+- Update connector of configuration container before sending a broker message.
+- Enforce access counter usage by moving it to an isolated method.
+
 ## [3.2.1] - 2020-11-05
 
-### Changed 
+### Changed
 - Update to IDS framework v3.2.3.
 - Move self-service and example endpoints to admin API.
 - Improve Dockerfile.
 - Add key- and truststore to example configuration.
-- Add default policy (provide access) to resource on creation. 
+- Add default policy (provide access) to resource on creation.
 
 ### Added
 - Update and delete resources from broker.
@@ -36,13 +201,13 @@ All notable changes to this project will be documented in this file.
 - Add file URI scheme to paths of KeyStore and TrustStore in config.json.
 - Add test classes: SelfDescriptionTest, RequestDescriptionTest, RequestArtifactTest, DescriptionRequestMessageHandlingTest, ArtifactRequestMessageHandlingTest.
 
-### Removed 
+### Removed
 - IDS Connector certificate file.
 
 ## [3.1.0] - 2020-09-29
 
 ### Changed
-- Integrate IDS policy language. 
+- Integrate IDS policy language.
 - Modify policy patterns.
 - Adapt policy reader to new policy language.
 - Adapt usage control implementation to new patterns.
