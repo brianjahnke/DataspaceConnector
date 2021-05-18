@@ -34,7 +34,7 @@ jobs:
        name: Find branch name
        id: get_branch
        run: |
-         echo ${git rev-parse --abbrev-ref HEAD}
+         echo $(git rev-parse --abbrev-ref HEAD)
          echo ::set-output name=BRANCH::${git rev-parse --abbrev-ref HEAD}
          exit 1
       -
