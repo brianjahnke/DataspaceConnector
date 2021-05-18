@@ -35,8 +35,8 @@ jobs:
        id: get_branch
        run: |
          # to lowercase
-         TMP = $(git rev-parse --abbrev-ref HEAD)
-         TMP = "${TMP,,}"
+         TMP=$(git rev-parse --abbrev-ref HEAD)
+         TMP=$(echo "$TMP" | tr '[:upper:]' '[:lower:]')
          echo $TMP
          echo ::set-output name=BRANCH::$TMP
       -
